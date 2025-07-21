@@ -23,10 +23,11 @@ export class ResponseProvider {
    * @param {*} status 
    * @returns 
    */
-  static error(res, message = "Error interno del servidor", status = 500, erros = []) {
+  static error(res, message = "Error interno del servidor", status = 500, errorCode = null, erros = []) {
     return res.status(status).json({
       success: false,
       code: status,
+      errorCode,
       message,
       erros: erros
     });

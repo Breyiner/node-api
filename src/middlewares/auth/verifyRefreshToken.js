@@ -1,15 +1,15 @@
 import { ResponseProvider } from "../../providers/ResponseProvider.js";
 import jwt from 'jsonwebtoken';
 
-const secretKey = process.env.ACCESS_TOKEN_SECRET;
+const refreshSecretKey = process.env.REFRESH_TOKEN_SECRET;
 
-export const verifyToken = (req, res, next) => {
-    const token = req.cookies.token;
+export const verifyRefreshToken = (req, res, next) => {
+    const refreshToken = req.cookies.refreshToken;
 
-    if(!token) return ResponseProvider.error(res, "Token no encontrado", 401, "TOKEN_MISSING");
+    if(!refreshToken) return ResponseProvider.error(res, "Token no encontrado", 401, "TOKEN_MISSING");
 
     try {
-        const decoded = jwt.verify(token, secretKey);
+        const decoded = jwt.verify(refreshToken, refreshSecretKey);
         req.user = decoded;
         next();
     } catch (err) {

@@ -66,18 +66,17 @@ class AuthService {
           res
         };
 
-      const token = jwt.sign(
-        {
-          user_id: user.id,
-          role_id: user.role_id
-        },
-        secretKey, 
-        {
-          expiresIn: tokenExpiration
-        }
-      );
+      const token = await this.genToken(secretKey, user);
+
+      const refreshToken = await this.genRefreshToken(refreshSecretKey, user);
       
       res.cookie('token', token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax'
+      })
+
+      res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: false,
         sameSite: 'Lax'
@@ -98,6 +97,58 @@ class AuthService {
     }
   }
 
+  static async refresh(res, user) {
+    try {
+
+      const nuevoToken = await this.genToken(secretKey, user);
+      
+      res.cookie('token', nuevoToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax'
+      });
+
+      console.log(`servicio: ${user}`);
+      
+      return { error: false, code: 200, message: "Token renovado exitosamente", 
+        data: {
+          user_id: user.id,
+          role_id: user.role_id
+        },
+        res
+      };
+
+    } catch (error) {
+      console.log(error);
+      return { error: true, code: 500, message: "Error al renovar el token", res };
+    }
+  }
+  
+  static async genToken(keyToken, user) {
+    return await jwt.sign(
+        {
+          id: user.id,
+          role_id: user.role_id
+        },
+        keyToken, 
+        {
+          expiresIn: tokenExpiration
+        }
+    );
+  }
+
+  static async genRefreshToken(keyRefreshToken, user) {
+    return await jwt.sign(
+        {
+          id: user.id,
+          role_id: user.role_id
+        },
+        keyRefreshToken, 
+        {
+          expiresIn: refreshExpiration
+        }
+    );
+  }
 
   static async logout(res) {
     try {

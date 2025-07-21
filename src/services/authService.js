@@ -32,6 +32,8 @@ class AuthService {
       // Retornamos la respuesta
       return { error: false, code: 201, message: "Usuario creado" };
     } catch (error) {      
+      console.log(error);
+      
       return { error: true, code: 500, message: "Error al crear el usuario" };
     }
   }
@@ -41,7 +43,7 @@ class AuthService {
    * @param {*} password
    * @returns
    */
-  static async login(email, password) {
+  static async login(res, email, password) {
     try {
       // Consultamos el usuario por el email
       const user = await Usuario.findByEmail(email);
@@ -50,7 +52,8 @@ class AuthService {
         return {
           error: true,
           code: 401,
-          message: "El correo o la contraseña proporcionados no son correctos.",
+          message: "Este correo no ha sido registrado.",
+          res
         };
       // Comparmamos la contraseña del usuarios registrado con la ingresada basado en la llave de encriptación
       const validPassword = await bcrypt.compare(password, user.password);
@@ -60,140 +63,55 @@ class AuthService {
           error: true,
           code: 401,
           message: "El correo o la contraseña proporcionados no son correctos.",
+          res
         };
-      // Generamos el token de seguridad
-      const accessToken = this.generateAccessToken(user);
-      // Generamos el refresh token
-      const refreshToken = this.generateRefreshToken(user);
-      // Actualizamos el refreshToken en la base de datos
-      await Usuario.updateRefreshToken(user.id, refreshToken);
-      // Retornamos los datos de validación del usuario
-      return {
-        error: false,
-        code: 201,
-        message: "Usuario autenticado correctamente",
-        data: {
-          accessToken,
-          refreshToken,
-        },
-      };
-    } catch (error) {
-      console.log(error);      
-      return { error: true, code: 500, message: "Error en el servidor" };
-    }
-  }
 
-  /**
-   *
-   * @param {*} user
-   * @returns
-   */
-  static generateAccessToken(user) {
-    return jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        // Podemos pasar más datos
-      },
-      secretKey,
-      { expiresIn: tokenExpiration }
-    );
-  }
-
-  /**
-   *
-   * @param {*} user
-   * @returns
-   */
-  static generateRefreshToken(user) {
-    return jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        // Podemos pasar más datos
-      },
-      refreshSecretKey,
-      { expiresIn: refreshExpiration }
-    );
-  }
-
-  /**
-   *
-   * @param {*} refreshToken
-   */
-  static async verifyAccessToken(refreshToken) {    
-    try {      
-      // Verificamos el token
-      const decoded = jwt.verify(refreshToken, refreshSecretKey);
-      
-      // Consultamos los datos del usuario en la base de datos
-      const user = await Usuario.findByEmail(decoded.email);
-      if (!user || user.refresh_token !== refreshToken) {
-        return { error: true, code: 403, message: "Token inválido" };
-      }
-      
-      // Generamos nuevo access token
-      const accessToken = this.generateAccessToken(user);
-      // Validamos si tenemos que renovar el token de refreso y asignamos el nuevo
-      refreshToken = await this.renewAccessToken(refreshToken, user);
-      // Retornamos los token
-        return {
-          error: false,
-          code: 201,
-          message: "Token actualizado correctamente",
-          data: {
-          accessToken,
-          refreshToken,
-          },
-        };
-    } catch (error) {      
-      if (error.name === "TokenExpiredError") {
-        return {
-          error: true,
-          code: 403,
-          message: "Token expirado, solicita un nuevo token",
-        };
-      }
-      return { error: true, code: 403, message: "Token inválido" };
-    }
-  }
-
-  /**
-   * 
-   * @param {*} refreshToken 
-   * @param {*} user 
-   * @returns 
-   */
-  static async renewAccessToken(refreshToken, user) {
-    let newRefreshToken = "";
-    const decoded = jwt.decode(refreshToken, { complete: true });
-    // Segundos restantes
-    const tiempoRestante = decoded.exp - Math.floor(Date.now() / 1000);
-    if (tiempoRestante < 60 * 60 * 24) {
-      // Si quedan menos de 24 horas
-      newRefreshToken = jwt.sign(
-        { id: decoded.id },
-        refreshSecretKey,
+      const token = jwt.sign(
         {
-        expiresIn: refreshExpiration,
+          user_id: user.id,
+          role_id: user.role_id
+        },
+        secretKey, 
+        {
+          expiresIn: tokenExpiration
         }
       );
-      // Actualizamos el token de refresco en la base de datos
-      await Usuario.updateRefreshToken(user.id, newRefreshToken);      
+      
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax'
+      })
+
+      return { error: false, code: 200, message: "Login exitoso", 
+        data: {
+          user_id: user.id,
+          role_id: user.role_id
+        },
+        res
+       };
+      
+    } catch (error) {     
+      console.log(error);
+      
+      return { error: true, code: 500, message: "Error al loguearse", res };
     }
-    // Si aún es válido, no renueva el token
-    return newRefreshToken;
   }
 
-  /**
-   *
-   * @param {*} userId
-   * @returns
-   */
-  static async logout(userId) {
-    await Usuario.updateRefreshToken(userId, null);
-    return { error: false, code: 200, message: "Sesión cerrada correctamente" };
+
+  static async logout(res) {
+    try {
+      
+      res.clearCookie('token');
+
+      return { error: false, code: 200, message: "Sesión cerrada con éxito", res };
+
+    } catch (error) {
+      return { error: true, code: 500, message: "Error al cerrar sesión", res };
+    }
   }
 }
+
+
 
 export default AuthService;

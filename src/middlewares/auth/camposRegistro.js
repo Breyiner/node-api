@@ -62,6 +62,8 @@ export const camposRegistro = (req, res, next) => {
 
   // Si hay errores, devolver una respuesta con los errores
   if (errors.length > 0) {
+    console.log(errors);
+    
     // Retornamos y Llamamos el provider para centralizar los mensajes de respuesta
     return ResponseProvider.error(res, "Error de validación", 400, errors);
   }

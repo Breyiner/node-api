@@ -8,6 +8,7 @@ import productoRoutes from "./src/routes/productosRoutes.js";
 import categoriasRoutes from "./src/routes/categoriasRoutes.js";
 import authRoutes from "./src/routes/authRoutes.js";
 import administradorRoutes from "./src/routes/administradorRoutes.js";
+import protectedRoutes from "./src/routes/protectedRoutes.js";
 
 dotenv.config();
 
@@ -15,7 +16,10 @@ dotenv.config();
 const app = express();
 // Middleware
 // Habilita CORS
-app.use(cors()); 
+app.use(cors({
+        origin: 'http://localhost:5173',
+        credentials: true,
+})); 
 // Permite que la app acepte datos JSON
 app.use(bodyParser.json()); 
 // app.use(express.json());
@@ -28,6 +32,7 @@ app.use('/api/productos', productoRoutes);
 app.use("/api/categorias", categoriasRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", administradorRoutes);
+app.use("/api/protected", protectedRoutes)
 
 // Puerto para ejecutar el servidor
 const port = process.env.PORT || 3000;

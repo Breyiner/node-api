@@ -34,12 +34,22 @@ CREATE TABLE productos (
   FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL -- Establece la relación y comportamiento al eliminar una categoría
 );
 
+-- Crear la tabla 'roles'
+CREATE TABLE roles (
+  id INT AUTO_INCREMENT PRIMARY KEY, -- ID del rol (clave primaria)
+  nombre VARCHAR(255) NOT NULL, -- Nombre del rol
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fecha de creación
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP -- Fecha de actualización
+);
+
 CREATE TABLE usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    role_id INT DEFAULT 2,
     nombre VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    refresh_token TEXT
+    refresh_token TEXT,
+    FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 
 
@@ -54,6 +64,10 @@ INSERT INTO productos (nombre, descripcion, precio, categoria_id) VALUES
 ('Laptop', 'Portátil con pantalla de 15 pulgadas', 799.99, 1),
 ('Camiseta', 'Camiseta de algodón para hombre', 19.99, 2),
 ('Manzanas', 'Manzanas frescas de calidad', 5.99, 3);
+
+INSERT INTO roles (nombre) VALUES 
+('Admin'),
+('User');
 
 select * from categorias;
 select * from productos;
